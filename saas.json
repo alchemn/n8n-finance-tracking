@@ -1,0 +1,677 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate_financial_report",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "94c68278-e0e4-4b28-a86d-1bf4ed210460",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -64
+      ],
+      "webhookId": "6eccc1d6-7a0f-46b9-a542-b6f37106ac3f"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "userId",
+              "value": "={{ $json[\"body\"][\"data\"][\"user\"][\"id\"] }}"
+            },
+            {
+              "name": "userName",
+              "value": "={{ $json[\"body\"][\"data\"][\"user\"][\"name\"] }}"
+            },
+            {
+              "name": "userEmail",
+              "value": "={{ $json[\"body\"][\"data\"][\"user\"][\"email\"] }}"
+            },
+            {
+              "name": "phoneNumber",
+              "value": "={{ $json[\"body\"][\"data\"][\"user\"][\"phoneNumber\"] }}"
+            },
+            {
+              "name": "reportType",
+              "value": "={{ $json[\"body\"][\"data\"][\"reportType\"] }}"
+            },
+            {
+              "name": "startDate",
+              "value": "={{ $json[\"body\"][\"data\"][\"startDate\"] }}"
+            },
+            {
+              "name": "endDate",
+              "value": "={{ $json[\"body\"][\"data\"][\"endDate\"] }}"
+            },
+            {
+              "name": "deliveryMethod",
+              "value": "={{ $json[\"body\"][\"data\"][\"deliveryMethod\"] }}"
+            },
+            {
+              "name": "reportId",
+              "value": "={{ $json[\"body\"][\"data\"][\"reportId\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e7fb185e-3b2f-4b1b-9121-9ca16c9a3a90",
+      "name": "Set Report Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "={{ \"http://localhost:3000/api/transactions?startDate=\" + $json[\"startDate\"] + \"&endDate=\" + $json[\"endDate\"] + \"&userId=\" + $json[\"userId\"] }}",
+        "options": {}
+      },
+      "id": "e87285db-2e8e-47f2-bf33-8f95fe0a2587",
+      "name": "Get Transactions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -64
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RDVGL9X29BlQAcZ6",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "93d3c5d9-f27c-4e73-98f3-5a4a4232aca9",
+      "name": "Calculate Total Expenses",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -176
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "96fea8b9-b31f-48c7-b065-d432827f7da1",
+      "name": "Calculate Total Income",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -16
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ebf48f31-add8-41b3-bda9-61eafb25e1f8",
+      "name": "Calculate Net Amount",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [
+        512,
+        144
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "db36eaa7-c83e-4725-b274-d4128d67d22a",
+      "name": "Count Transactions",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [
+        512,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "field": "categoryId",
+              "aggregate": "sum",
+              "targetField": "amount",
+              "outputFieldName": "total"
+            },
+            {
+              "field": "categoryName",
+              "aggregate": "first",
+              "targetField": "categoryName",
+              "outputFieldName": "name"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "10d4f817-a383-43d5-9feb-0bdca709e28d",
+      "name": "Aggregate by Category",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "total",
+              "order": "desc"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3e1fb854-fff6-48a7-a83f-bd098a2d43ac",
+      "name": "Sort Categories",
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        912,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "content",
+              "value": "## Financial Report for {{ $json[\"userName\"] }}\n\n**Period:** {{ $json[\"startDate\"] }} to {{ $json[\"endDate\"] }}\n\n### Summary\n- **Total Expenses:** IDR {{ $json[\"totalExpenses\"].toLocaleString()}}\n- **Total Income:** IDR {{ $json[\"totalIncome\"].toLocaleString()}}\n- **Net Amount:** IDR {{ $json[\"netAmount\"]}}.toLocaleString()}}\n- **Transaction Count:** {{ $json[\"transactionCount\"] }}\n\n### Category Breakdown\n{{ $json[\"categoryBreakdown\"]}}.map(c => `- ${c.name}: IDR ${c.total.toLocaleString()}`).join(\"\n\")}}\n\n### Insights\n1. Your highest spending category is {{ $json[\"categoryBreakdown\"][0]?.name || \"N/A\" }}.\n2. You have {{ $json[\"transactionCount\"] }} transactions in this period.\n\n---\n*Generated by Financial SaaS Platform*"
+            },
+            {
+              "name": "reportId",
+              "value": "={{ $json[\"reportId\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b3854cbc-7f99-4479-a013-ff301e09e3ed",
+      "name": "Generate Report Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "gitkokcoco@gmail.com",
+        "toEmail": "={{ $json[\"userEmail\"] }}",
+        "subject": "Your Financial Report is Ready",
+        "text": "Hi {{ $json[\"userName\"] }},\n\nYour financial report for the period {{ $json[\"startDate\"] }} to {{ $json[\"endDate\"] }} is ready.\n\nYou can download it using the link below:\nhttp://localhost:3000/api/reports/download/{{ $json[\"reportId\"] }}\\n\nBest regards,\nFinancial SaaS Team",
+        "options": {}
+      },
+      "id": "3e6a9199-3e07-483d-95d2-554fe0708b41",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        -176
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "EmiRNfrxgbP7g3lK",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "+1234567890",
+        "to": "={{ $json[\"phoneNumber\"] }}",
+        "message": "Hi {{ $json[\"userName\"] }}, your financial report is ready. Download it here: http://localhost:3000/api/reports/download/{{ $json[\"reportId\"] }}",
+        "options": {}
+      },
+      "id": "46d4b2bb-dec6-4a13-9b53-3bbd163651de",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        32
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "xAcxQuJLHiXmNOVi",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ \"http://localhost:3000/api/reports/\" + $json[\"reportId\"] + \"/status\" }}",
+        "options": {}
+      },
+      "id": "6677fd1c-cb1a-4632-a5bc-15913f75971f",
+      "name": "Update Report Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "reportContent",
+              "value": "## Financial Report for {{ $json[\"userName\"] }}\n\n**Period:** {{ $json[\"startDate\"] }} to {{ $json[\"endDate\"] }}\n\n### Summary\n- **Total Expenses:** IDR {{ $json[\"totalExpenses\"] }}\n- **Total Income:** IDR {{ $json[\"totalIncome\"] }}\n- **Net Amount:** IDR {{ $json[\"netAmount\"] }}\n- **Transaction Count:** {{ $json[\"transactionCount\"] }}\n\n---\n*Generated by Financial SaaS Platform*"
+            },
+            {
+              "name": "reportId",
+              "value": "={{ $json[\"reportId\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cbd44224-ac80-43fd-9349-a42da182c786",
+      "name": "Generate HTML Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "reportId",
+              "value": "={{ $json[\"reportId\"] || 'MISSING_REPORT_ID' }}"
+            },
+            {
+              "name": "reportContent",
+              "value": "={{ $json[\"reportContent\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-upload-data-node-id",
+      "name": "Prepare Upload Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1420,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "={{ \"http://localhost:3000/api/reports/\" + $json[\"originalReportId\"] + \"/upload\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonFields": "keypair",
+        "options": {},
+        "jsonKeyValue": {
+          "content": "={{ $json[\"reportContent\"] }}"
+        }
+      },
+      "id": "48472fb3-1f37-42b6-8ae9-ef6e990f82f9",
+      "name": "Upload Report to App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        240
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RDVGL9X29BlQAcZ6",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 1,
+              "unit": "days"
+            }
+          ]
+        }
+      },
+      "id": "35f44360-99d6-4807-81f3-99a0e083810c",
+      "name": "Cron - Daily Sync",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/users",
+        "options": {}
+      },
+      "id": "2b948058-cb14-4d44-b0f5-2e827e3d6f50",
+      "name": "Get All Users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        112,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://n8n.your-external-system.com/webhook/sync-users",
+        "options": {}
+      },
+      "id": "cc503cbb-e580-4e5c-8648-28d13d63588a",
+      "name": "Sync Users to External System",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        320,
+        432
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e28cb9fa-1a03-48c4-b745-d2ed559a353e",
+      "name": "Check if Email",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        -176
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "7deac6f6-4ff0-45cf-9d41-481b48566268",
+      "name": "Check if WhatsApp",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        960,
+        128
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Report Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Report Parameters": {
+      "main": [
+        [
+          {
+            "node": "Get Transactions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Transactions": {
+      "main": [
+        [
+          {
+            "node": "Calculate Total Expenses",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Calculate Total Income",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Calculate Net Amount",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Count Transactions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate by Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Total Expenses": {
+      "main": [
+        [
+          {
+            "node": "Generate Report Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Total Income": {
+      "main": [
+        [
+          {
+            "node": "Generate Report Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Net Amount": {
+      "main": [
+        [
+          {
+            "node": "Generate Report Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Transactions": {
+      "main": [
+        [
+          {
+            "node": "Generate Report Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate by Category": {
+      "main": [
+        [
+          {
+            "node": "Sort Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort Categories": {
+      "main": [
+        [
+          {
+            "node": "Generate Report Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Report Content": {
+      "main": [
+        [
+          {
+            "node": "Check if Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check if WhatsApp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate HTML Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Update Report Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Update Report Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate HTML Report": {
+      "main": [
+        [
+          {
+            "node": "Prepare Upload Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Upload Data": {
+      "main": [
+        [
+          {
+            "node": "Upload Report to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Report to App": {
+      "main": [
+        [
+          {
+            "node": "Update Report Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron - Daily Sync": {
+      "main": [
+        [
+          {
+            "node": "Get All Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Users": {
+      "main": [
+        [
+          {
+            "node": "Sync Users to External System",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ca6ed5b2-bba1-4c1e-909a-a1f7e0a32f93",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "05bf801c4c696ed6685038c7dae0dac16c8b12c195ca49671cc6de8e3da1b510"
+  },
+  "id": "KMi4aM6gAjZS6Emy",
+  "tags": []
+}
